@@ -1,0 +1,110 @@
+{
+  "decision": "proceed-to-cuda-and-closed-loop-validation",
+  "decision_is_provisional": true,
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "checkpoint": "lerobot/diffusion_pusht_keypoints",
+  "checkpoint_revision": "58570fc39828d28efa5457aa297a52be27ac3a10",
+  "device": "cpu",
+  "cache_policy": {
+    "warmup_steps": 2,
+    "force_compute_last": 2,
+    "max_consecutive_skips": 2
+  },
+  "mean_denoiser_fraction": 0.9977001899756425,
+  "criteria": {
+    "minimum_skip_fraction_each_seed": 0.2,
+    "maximum_first_action_error_each_seed": 0.05,
+    "threshold_zero_must_be_exact": true
+  },
+  "candidate_thresholds": [
+    0.15,
+    0.2,
+    0.25
+  ],
+  "thresholds": [
+    {
+      "threshold": 0.0,
+      "runs": 6,
+      "complete": true,
+      "mean_skip_fraction": 0.0,
+      "minimum_skip_fraction": 0.0,
+      "mean_first_action_max_error": 0.0,
+      "maximum_first_action_max_error": 0.0,
+      "mean_action_chunk_mse": 0.0,
+      "maximum_action_chunk_error": 0.0,
+      "median_observed_cpu_speedup": 0.985091540153505
+    },
+    {
+      "threshold": 0.075,
+      "runs": 6,
+      "complete": true,
+      "mean_skip_fraction": 0.13333333333333333,
+      "minimum_skip_fraction": 0.0,
+      "mean_first_action_max_error": 0.0016059478123982747,
+      "maximum_first_action_max_error": 0.0055291056632995605,
+      "mean_action_chunk_mse": 1.9916734951645292e-05,
+      "maximum_action_chunk_error": 0.018613874912261963,
+      "median_observed_cpu_speedup": 1.099591600665651
+    },
+    {
+      "threshold": 0.1,
+      "runs": 6,
+      "complete": true,
+      "mean_skip_fraction": 0.21666666666666667,
+      "minimum_skip_fraction": 0.0,
+      "mean_first_action_max_error": 0.01603640119234721,
+      "maximum_first_action_max_error": 0.07209396362304688,
+      "mean_action_chunk_mse": 0.00021965778735951366,
+      "maximum_action_chunk_error": 0.07209396362304688,
+      "median_observed_cpu_speedup": 1.3153404280836183
+    },
+    {
+      "threshold": 0.15,
+      "runs": 6,
+      "complete": true,
+      "mean_skip_fraction": 0.3,
+      "minimum_skip_fraction": 0.2,
+      "mean_first_action_max_error": 0.016295254230499268,
+      "maximum_first_action_max_error": 0.0338597297668457,
+      "mean_action_chunk_mse": 0.00017840382558157822,
+      "maximum_action_chunk_error": 0.04088407754898071,
+      "median_observed_cpu_speedup": 1.4541985441638658
+    },
+    {
+      "threshold": 0.2,
+      "runs": 6,
+      "complete": true,
+      "mean_skip_fraction": 0.35000000000000003,
+      "minimum_skip_fraction": 0.3,
+      "mean_first_action_max_error": 0.014633357524871826,
+      "maximum_first_action_max_error": 0.04021352529525757,
+      "mean_action_chunk_mse": 0.00022893552522873506,
+      "maximum_action_chunk_error": 0.048535048961639404,
+      "median_observed_cpu_speedup": 1.431515408084627
+    },
+    {
+      "threshold": 0.25,
+      "runs": 6,
+      "complete": true,
+      "mean_skip_fraction": 0.35000000000000003,
+      "minimum_skip_fraction": 0.3,
+      "mean_first_action_max_error": 0.01968271533648173,
+      "maximum_first_action_max_error": 0.04387664794921875,
+      "mean_action_chunk_mse": 0.00038252359809121117,
+      "maximum_action_chunk_error": 0.06181025505065918,
+      "median_observed_cpu_speedup": 1.5256231086243328
+    }
+  ],
+  "limitations": [
+    "The conditioning vectors are synthetic but normalized; this is not task-success evidence.",
+    "CPU timing is functional and must not be presented as a CUDA performance claim.",
+    "The action-error criterion is a screening bound, not a task-derived tolerance."
+  ]
+}

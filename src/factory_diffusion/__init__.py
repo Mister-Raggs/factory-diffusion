@@ -5,5 +5,13 @@ from factory_diffusion.cache.adaptive import (
     AdaptiveResidualCache,
     CacheStep,
 )
+from factory_diffusion.trace import DenoisingStep, DenoisingTrace, StepDiagnostics
 
-__all__ = ["AdaptiveCacheConfig", "AdaptiveResidualCache", "CacheStep"]
+__all__ = [
+    "AdaptiveCacheConfig",
+    "AdaptiveResidualCache",
+    "CacheStep",
+    "DenoisingStep",
+    "DenoisingTrace",
+    "StepDiagnostics",
+]

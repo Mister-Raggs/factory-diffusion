@@ -7,6 +7,7 @@ model evaluation. The returned tensor always has the same shape as the input.
 
 from __future__ import annotations
 
+import time
 from collections.abc import Callable
 from dataclasses import dataclass
 
@@ -18,9 +19,9 @@ from torch import Tensor
 class AdaptiveCacheConfig:
     """Controls when a denoiser evaluation may be replaced by cached reuse."""
 
-    threshold: float = 0.015
+    threshold: float = 0.0
     warmup_steps: int = 2
-    force_compute_last: int = 1
+    force_compute_last: int = 2
     max_consecutive_skips: int | None = None
     epsilon: float = 1e-8
 
@@ -47,6 +48,7 @@ class CacheStep:
     predicted_error: float
     accumulated_error: float
     sensitivity: float | None
+    compute_ms: float
 
 
 class AdaptiveResidualCache:
@@ -152,12 +154,25 @@ class AdaptiveResidualCache:
                 forced_reason = "threshold"
 
         if forced_reason is not None:
+            if model_input.device.type == "cuda":
+                torch.cuda.synchronize(model_input.device)
+            elif model_input.device.type == "mps" and hasattr(torch, "mps"):
+                torch.mps.synchronize()
+            started = time.perf_counter()
             output = compute()
+            if isinstance(output, Tensor):
+                if output.device.type == "cuda":
+                    torch.cuda.synchronize(output.device)
+                elif output.device.type == "mps" and hasattr(torch, "mps"):
+                    torch.mps.synchronize()
+            compute_ms = (time.perf_counter() - started) * 1000
             if not isinstance(output, Tensor):
                 raise TypeError("compute must return a torch.Tensor")
             self._record_computation(model_input, output)
             reason = forced_reason
             recomputed = True
+        else:
+            compute_ms = 0.0
 
         self._previous_input = model_input.detach().clone()
         self.next_step += 1
@@ -168,4 +183,5 @@ class AdaptiveResidualCache:
             predicted_error=predicted_error,
             accumulated_error=self.accumulated_error,
             sensitivity=self.sensitivity,
+            compute_ms=compute_ms,
         )

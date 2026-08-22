@@ -6,6 +6,11 @@ Every cached run is paired with an uncached run using the same checkpoint,
 observation history, scheduler, initial diffusion noise and environment seed.
 The cache is the only changed variable.
 
+Offline trace replay is explicitly labeled as a baseline-path approximation:
+it can screen thresholds cheaply, but it cannot represent the changed scheduler
+trajectory after a reused output. Any selected threshold is therefore rerun
+online through the actual scheduler before action error is reported.
+
 ## Feasibility gate
 
 Before closed-loop evaluation, capture full denoising traces and require both:

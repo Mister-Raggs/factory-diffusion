@@ -31,6 +31,27 @@ rollout sweeps.
 
 Nothing here modifies or vendors the hackathon repositories or FastVideo.
 
+## Phase 1 status
+
+Phase 1 is complete on the pinned public keypoint-conditioned PushT policy:
+
+- exact revision: `58570fc39828d28efa5457aa297a52be27ac3a10`;
+- real 248.8M-parameter temporal U-Net, not a synthetic model;
+- six paired seeds with identical conditioning, initial noise and scheduler
+  seeds;
+- uncached tensor traces and baseline-path threshold replay;
+- exact online cached runs that include scheduler-path divergence; and
+- zero-threshold equivalence verified for every seed.
+
+The provisional result is to proceed to CUDA and closed-loop validation. With
+two warmup steps, two forced final recomputations and at most two consecutive
+skips, threshold `0.15` skipped 20–40% of the ten denoising calls across the
+six probes. Its worst normalized first-action deviation was `0.03386`.
+
+See [the Phase 1 summary](reports/phase1/SUMMARY.md) and its machine-readable
+[metrics](reports/phase1/summary.json). CPU timings in that report are strictly
+functional measurements, not performance claims.
+
 ## Local setup
 
 Python 3.10 is used initially to match the already-tested local LeRobot 0.4.4
@@ -52,6 +73,34 @@ PYTHONPATH=src /path/to/python -m unittest discover -s tests
 PYTHONPATH=src /path/to/python experiments/00_smoke_cache.py
 ```
 
+## Reproduce the Phase 1 probe
+
+The official visual `lerobot/diffusion_pusht` checkpoint has a known image
+encoder compatibility problem with LeRobot 0.4.4. Phase 1 therefore uses the
+official keypoint-conditioned checkpoint, which exercises the same action
+U-Net without the incompatible image encoder. The loader translates its legacy
+configuration and pins its immutable Hub revision.
+
+Run a single seed:
+
+```bash
+PYTHONPATH=src python experiments/01_pusht_keypoints_probe.py \
+  --device cpu \
+  --force-compute-last 2 \
+  --output-dir outputs/phase1/pusht-keypoints-safe-seed0
+```
+
+Aggregate a set of seed reports:
+
+```bash
+PYTHONPATH=src python experiments/02_summarize_phase1.py outputs/phase1 \
+  --path-glob 'pusht-keypoints-safe-seed*/report_seed_*.json' \
+  --output-dir reports/phase1
+```
+
+The probe downloads the roughly 1 GB checkpoint into the gitignored local
+cache on first use. Generated traces and outputs are also gitignored.
+
 ## Experiment gates
 
 1. Profile the uncached policy and confirm repeated U-Net calls dominate
@@ -60,9 +109,11 @@ PYTHONPATH=src /path/to/python experiments/00_smoke_cache.py
    initial noise.
 3. Measure input change, output change, learned sensitivity and
    transformation-vector drift step by step.
-4. Compare uncached, reduced-step DDIM, `torch.compile`, fixed skipping and
-   adaptive caching.
-5. Only then train or evaluate in Factory SRE and on SO-101 hardware.
+4. Screen adaptive thresholds offline, then rerun selected thresholds online
+   with the real scheduler.
+5. In Phase 2, compare reduced-step DDIM, `torch.compile`, fixed skipping and
+   adaptive caching on CUDA and in closed loop.
+6. Only then train or evaluate in Factory SRE and on SO-101 hardware.
 
 Cache state is reset for every action chunk. State must never cross policy
 queries or episode boundaries.

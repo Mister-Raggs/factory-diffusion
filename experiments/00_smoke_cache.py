@@ -17,10 +17,10 @@ def main() -> None:
     for step in range(6):
         model_input = torch.full((1, 8, 6), float(step))
 
-        def compute() -> torch.Tensor:
+        def compute(current: torch.Tensor = model_input) -> torch.Tensor:
             nonlocal calls
             calls += 1
-            return model_input + 2.0
+            return current + 2.0
 
         result = cache.run(step, model_input, compute)
         expected = model_input + 2.0

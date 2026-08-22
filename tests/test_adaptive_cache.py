@@ -19,10 +19,10 @@ class AdaptiveResidualCacheTest(unittest.TestCase):
         for step in range(4):
             model_input = torch.tensor([float(step)])
 
-            def compute() -> torch.Tensor:
+            def compute(current: torch.Tensor = model_input) -> torch.Tensor:
                 nonlocal calls
                 calls += 1
-                return model_input + 2
+                return current + 2
 
             result = cache.run(step, model_input, compute)
             torch.testing.assert_close(result.output, model_input + 2)
@@ -38,7 +38,9 @@ class AdaptiveResidualCacheTest(unittest.TestCase):
         results = []
         for step in range(4):
             model_input = torch.tensor([float(step)])
-            results.append(cache.run(step, model_input, lambda: model_input.square()))
+            results.append(
+                cache.run(step, model_input, lambda current=model_input: current.square())
+            )
 
         self.assertTrue(all(result.recomputed for result in results))
 

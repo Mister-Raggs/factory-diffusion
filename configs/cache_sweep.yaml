@@ -6,9 +6,12 @@ baseline:
   compile: [false, true]
 
 adaptive_cache:
-  thresholds: [0.0, 0.0025, 0.005, 0.01, 0.015, 0.03]
+  # Action U-Net values are on a different scale from Wan video-model values.
+  # The 0.075-0.15 region is the first observed skip region in the pinned
+  # keypoint checkpoint; each new policy still needs its own uncached probe.
+  thresholds: [0.0, 0.03, 0.05, 0.075, 0.1, 0.15, 0.25]
   warmup_steps: [2]
-  force_compute_last: [1]
+  force_compute_last: [2]
   max_consecutive_skips: [1, 2, 4]
 
 evaluation:
