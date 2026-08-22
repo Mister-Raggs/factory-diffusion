@@ -1,0 +1,24 @@
+# Initial feasibility sweep. Final values must be selected from an uncached
+# residual trace rather than copied from video-generation experiments.
+baseline:
+  scheduler: ddim
+  inference_steps: [10, 20, 50, 100]
+  compile: [false, true]
+
+adaptive_cache:
+  thresholds: [0.0, 0.0025, 0.005, 0.01, 0.015, 0.03]
+  warmup_steps: [2]
+  force_compute_last: [1]
+  max_consecutive_skips: [1, 2, 4]
+
+evaluation:
+  paired_seeds: true
+  fixed_initial_noise: true
+  report:
+    - median_latency_ms
+    - p95_latency_ms
+    - denoiser_calls
+    - skip_fraction
+    - action_mse
+    - first_action_max_error
+    - task_success_rate
