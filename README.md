@@ -115,7 +115,7 @@ cache on first use. Generated traces and outputs are also gitignored.
 No project credits should be spent until these zero-credit checks complete:
 
 1. Repeat the trace and threshold study on at least 100 real PushT conditioning
-   examples spanning early, approach, and contact phases.
+   examples sampled across the temporal span of episodes.
 2. At each budget `k in {5, 6, 7, 8}`, compare plain DDIM-k,
    fixed-interval reuse, and adaptive caching using exactly k U-Net calls.
 3. Measure the visual encoder/U-Net latency split at the real input shape.
@@ -132,6 +132,24 @@ optional final demonstration rather than an experimental benchmark.
 Cache state is reset for every action chunk. State must never cross policy
 queries or episode boundaries.
 
+### Implementation status
+
+The Phase 1.5 offline harness is implemented and locally validated:
+
+- the official `lerobot/pusht_keypoints` dataset is pinned at revision
+  `ace8c161a68bc025c21a5f29f85b86a9a2c5e64b`;
+- the official keypoint policy checkpoint is pinned at revision
+  `58570fc39828d28efa5457aa297a52be27ac3a10`;
+- its 995,056,568-byte safetensors file matches SHA-256
+  `ae40aa87dd124ee1e4914258049f4eac676345a28e6cb8dfcfa67830cc3246b0`;
+- the checkpoint loads offline as a 248,759,426-parameter DDIM-10 policy; and
+- the unit, lint, formatting, and compilation checks pass in the standalone
+  Factory Diffusion environment.
+
+These checks establish reproducibility, not the research result. The small
+end-to-end smoke run and full 100-sample matched-NFE evaluation remain to be
+executed.
+
 The real-conditioning and matched-NFE harness is implemented in
 `experiments/03_phase15_matched_nfe.py`. It pins the official PushT keypoint
 dataset, samples temporal thirds of episodes deterministically, calibrates an
@@ -139,22 +157,38 @@ adaptive threshold without looking at evaluation action error, and evaluates
 DDIM-k, fixed reuse, and adaptive reuse on the same held-out observations and
 initial noise.
 
-Run the full 100-sample gate after the public dataset and checkpoint are
-available locally:
+After activating the project environment, run a small integration smoke test:
+
+```bash
+source .venv/bin/activate
+PYTHONPATH=src python experiments/03_phase15_matched_nfe.py \
+  --samples 3 \
+  --calibration-samples 1 \
+  --budgets 5 \
+  --local-files-only \
+  --dataset-root data/pusht-keypoints \
+  --cache-dir .cache/huggingface/hub \
+  --output-dir outputs/phase15/smoke
+```
+
+Once that passes, run the full 100-sample gate:
 
 ```bash
 PYTHONPATH=src python experiments/03_phase15_matched_nfe.py \
   --samples 100 \
   --calibration-samples 25 \
   --budgets 5,6,7,8 \
+  --local-files-only \
   --dataset-root data/pusht-keypoints \
+  --cache-dir .cache/huggingface/hub \
   --output-dir outputs/phase15/matched-nfe
 ```
 
-Use `--local-files-only` for a fully offline rerun. The report records the
-immutable dataset and checkpoint revisions, exact NFE for every run, normalized
-action error, and action error converted back to PushT pixels. Temporal thirds
-are sampling strata, not verified approach/contact labels.
+`--local-files-only` prevents checkpoint network access. The pinned dataset
+must already exist at `--dataset-root` for an offline rerun. The report records
+the immutable dataset and checkpoint revisions, exact NFE for every run,
+normalized action error, and action error converted back to PushT pixels.
+Temporal thirds are sampling strata, not verified approach/contact labels.
 
 ## Attribution
 
