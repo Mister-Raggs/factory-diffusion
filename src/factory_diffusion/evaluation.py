@@ -8,8 +8,14 @@ from dataclasses import dataclass
 import torch
 from torch import Tensor, nn
 
-from factory_diffusion.cache import AdaptiveCacheConfig, CacheStep
-from factory_diffusion.integrations.lerobot import CachedDenoiser
+from factory_diffusion.cache import (
+    AdaptiveCacheConfig,
+    AdaptiveResidualCache,
+    CacheStep,
+    FixedResidualCache,
+    guarded_uniform_schedule,
+)
+from factory_diffusion.integrations.lerobot import ResidualCache, ResidualReuseDenoiser
 from factory_diffusion.trace import DenoisingTrace, TraceDenoiser
 
 
@@ -62,6 +68,36 @@ class PairedRun:
         return self.baseline.wall_ms / self.cached.wall_ms
 
 
+@dataclass(frozen=True)
+class ActionError:
+    first_action_max_error: float
+    action_chunk_mse: float
+    action_chunk_max_error: float
+
+
+def compare_action_tensors(
+    reference: Tensor,
+    candidate: Tensor,
+    *,
+    n_obs_steps: int = 2,
+    n_action_steps: int = 8,
+) -> ActionError:
+    """Compare the action chunk that LeRobot would actually execute."""
+
+    if reference.shape != candidate.shape:
+        raise ValueError("reference and candidate action tensors must have equal shapes")
+    action_start = n_obs_steps - 1
+    action_stop = action_start + n_action_steps
+    reference_chunk = reference[:, action_start:action_stop]
+    candidate_chunk = candidate[:, action_start:action_stop]
+    chunk_error = (candidate_chunk.float() - reference_chunk.float()).abs()
+    return ActionError(
+        first_action_max_error=float(chunk_error[:, 0].max()),
+        action_chunk_mse=float(chunk_error.square().mean()),
+        action_chunk_max_error=float(chunk_error.max()),
+    )
+
+
 def _validate_diffusion(diffusion: nn.Module) -> tuple[nn.Module, int]:
     unet = getattr(diffusion, "unet", None)
     if not isinstance(unet, nn.Module):
@@ -81,14 +117,19 @@ def run_uncached_sampler(
     global_cond: Tensor,
     noise: Tensor,
     scheduler_seed: int = 0,
+    num_inference_steps: int | None = None,
 ) -> UncachedRun:
     """Capture an exact uncached trajectory and its denoiser timing."""
 
-    original_unet, total_steps = _validate_diffusion(diffusion)
+    original_unet, configured_steps = _validate_diffusion(diffusion)
+    total_steps = configured_steps if num_inference_steps is None else int(num_inference_steps)
+    if total_steps < 1:
+        raise ValueError("num_inference_steps must be positive")
     tracer = TraceDenoiser(original_unet, auto_total_steps=total_steps)
     tracer.eval()
     try:
         diffusion.unet = tracer
+        diffusion.num_inference_steps = total_steps
         _synchronize(noise)
         started = time.perf_counter()
         actions = diffusion.conditional_sample(
@@ -102,22 +143,23 @@ def run_uncached_sampler(
         trace = tracer.trace()
     finally:
         diffusion.unet = original_unet
+        diffusion.num_inference_steps = configured_steps
     return UncachedRun(actions=actions.detach(), trace=trace, wall_ms=wall_ms)
 
 
 @torch.inference_mode()
-def run_cached_sampler(
+def run_residual_reuse_sampler(
     diffusion: nn.Module,
     *,
     global_cond: Tensor,
     noise: Tensor,
-    cache_config: AdaptiveCacheConfig,
+    cache: ResidualCache,
     scheduler_seed: int = 0,
 ) -> CachedRun:
-    """Run an exact cached trajectory, including scheduler-path divergence."""
+    """Run an exact reused trajectory, including scheduler-path divergence."""
 
     original_unet, total_steps = _validate_diffusion(diffusion)
-    cached = CachedDenoiser(original_unet, cache_config, auto_total_steps=total_steps)
+    cached = ResidualReuseDenoiser(original_unet, cache, auto_total_steps=total_steps)
     cached.eval()
     try:
         diffusion.unet = cached
@@ -136,6 +178,51 @@ def run_cached_sampler(
     return CachedRun(actions=actions.detach(), steps=tuple(cached.steps), wall_ms=wall_ms)
 
 
+def run_cached_sampler(
+    diffusion: nn.Module,
+    *,
+    global_cond: Tensor,
+    noise: Tensor,
+    cache_config: AdaptiveCacheConfig,
+    scheduler_seed: int = 0,
+) -> CachedRun:
+    return run_residual_reuse_sampler(
+        diffusion,
+        global_cond=global_cond,
+        noise=noise,
+        cache=AdaptiveResidualCache(cache_config),
+        scheduler_seed=scheduler_seed,
+    )
+
+
+def run_fixed_sampler(
+    diffusion: nn.Module,
+    *,
+    global_cond: Tensor,
+    noise: Tensor,
+    recomputations: int,
+    scheduler_seed: int = 0,
+    warmup_steps: int = 2,
+    force_compute_last: int = 2,
+) -> CachedRun:
+    """Run fixed transformation reuse with an exact denoiser-call budget."""
+
+    _, total_steps = _validate_diffusion(diffusion)
+    schedule = guarded_uniform_schedule(
+        total_steps,
+        recomputations,
+        warmup_steps=warmup_steps,
+        force_compute_last=force_compute_last,
+    )
+    return run_residual_reuse_sampler(
+        diffusion,
+        global_cond=global_cond,
+        noise=noise,
+        cache=FixedResidualCache(schedule),
+        scheduler_seed=scheduler_seed,
+    )
+
+
 def compare_runs(
     baseline: UncachedRun,
     cached: CachedRun,
@@ -145,20 +232,18 @@ def compare_runs(
 ) -> PairedRun:
     """Compare the action chunk that LeRobot would actually execute."""
 
-    if baseline.actions.shape != cached.actions.shape:
-        raise ValueError("baseline and cached action tensors must have equal shapes")
-    action_start = n_obs_steps - 1
-    action_stop = action_start + n_action_steps
-    baseline_chunk = baseline.actions[:, action_start:action_stop]
-    cached_chunk = cached.actions[:, action_start:action_stop]
-    chunk_error = (cached_chunk.float() - baseline_chunk.float()).abs()
-    first_error = chunk_error[:, 0]
+    error = compare_action_tensors(
+        baseline.actions,
+        cached.actions,
+        n_obs_steps=n_obs_steps,
+        n_action_steps=n_action_steps,
+    )
     return PairedRun(
         baseline=baseline,
         cached=cached,
-        first_action_max_error=float(first_error.max()),
-        action_chunk_mse=float(chunk_error.square().mean()),
-        action_chunk_max_error=float(chunk_error.max()),
+        first_action_max_error=error.first_action_max_error,
+        action_chunk_mse=error.action_chunk_mse,
+        action_chunk_max_error=error.action_chunk_max_error,
     )
 
 

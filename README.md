@@ -132,6 +132,30 @@ optional final demonstration rather than an experimental benchmark.
 Cache state is reset for every action chunk. State must never cross policy
 queries or episode boundaries.
 
+The real-conditioning and matched-NFE harness is implemented in
+`experiments/03_phase15_matched_nfe.py`. It pins the official PushT keypoint
+dataset, samples temporal thirds of episodes deterministically, calibrates an
+adaptive threshold without looking at evaluation action error, and evaluates
+DDIM-k, fixed reuse, and adaptive reuse on the same held-out observations and
+initial noise.
+
+Run the full 100-sample gate after the public dataset and checkpoint are
+available locally:
+
+```bash
+PYTHONPATH=src python experiments/03_phase15_matched_nfe.py \
+  --samples 100 \
+  --calibration-samples 25 \
+  --budgets 5,6,7,8 \
+  --dataset-root data/pusht-keypoints \
+  --output-dir outputs/phase15/matched-nfe
+```
+
+Use `--local-files-only` for a fully offline rerun. The report records the
+immutable dataset and checkpoint revisions, exact NFE for every run, normalized
+action error, and action error converted back to PushT pixels. Temporal thirds
+are sampling strata, not verified approach/contact labels.
+
 ## Attribution
 
 The adaptive rule is inspired by *Less is Enough: Training-Free Video

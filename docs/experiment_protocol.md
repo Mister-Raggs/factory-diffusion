@@ -27,6 +27,16 @@ it can screen thresholds cheaply, but it cannot represent the changed scheduler
 trajectory after a reused output. Any selected threshold is therefore rerun
 online through the actual scheduler before action error is reported.
 
+Threshold selection uses calibration traces only and minimizes distance from
+the requested mean NFE budget. Evaluation action errors must not influence this
+selection. The online adaptive runner then enforces the exact NFE budget on
+each held-out sample, preserving the initial and final denoising guards.
+
+The initial Phase 1.5 harness uses deterministic samples from the early,
+middle, and late temporal thirds of PushT episodes. These are coverage strata,
+not semantic labels for approach or contact. Any contact-specific claim needs
+state-derived labels or rollout annotations.
+
 ## Feasibility gate
 
 Before closed-loop evaluation, capture full denoising traces on at least 100

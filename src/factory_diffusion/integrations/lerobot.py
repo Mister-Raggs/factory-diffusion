@@ -2,15 +2,30 @@
 
 from __future__ import annotations
 
-from typing import Any
+from collections.abc import Callable
+from typing import Any, Protocol
 
 from torch import Tensor, nn
 
 from factory_diffusion.cache import AdaptiveCacheConfig, AdaptiveResidualCache, CacheStep
 
 
-class CachedDenoiser(nn.Module):
-    """Wrap a same-shape PyTorch denoiser with per-trajectory adaptive reuse.
+class ResidualCache(Protocol):
+    total_steps: int | None
+    next_step: int
+
+    def reset(self, total_steps: int | None) -> None: ...
+
+    def run(
+        self,
+        step_index: int,
+        model_input: Tensor,
+        compute: Callable[[], Tensor],
+    ) -> CacheStep: ...
+
+
+class ResidualReuseDenoiser(nn.Module):
+    """Wrap a same-shape PyTorch denoiser with a per-trajectory cache.
 
     Call ``begin_trajectory`` immediately before LeRobot enters its scheduler
     loop. Each subsequent ``forward`` consumes exactly one denoising step.
@@ -20,13 +35,13 @@ class CachedDenoiser(nn.Module):
     def __init__(
         self,
         denoiser: nn.Module,
-        config: AdaptiveCacheConfig | None = None,
+        cache: ResidualCache,
         *,
         auto_total_steps: int | None = None,
     ) -> None:
         super().__init__()
         self.denoiser = denoiser
-        self.cache = AdaptiveResidualCache(config)
+        self.cache = cache
         self.steps: list[CacheStep] = []
         self._active = False
         self.auto_total_steps = auto_total_steps
@@ -63,6 +78,23 @@ class CachedDenoiser(nn.Module):
         if self.cache.total_steps == self.cache.next_step:
             self.end_trajectory()
         return result.output
+
+
+class CachedDenoiser(ResidualReuseDenoiser):
+    """Adaptive-residual specialization retained as the public LeRobot adapter."""
+
+    def __init__(
+        self,
+        denoiser: nn.Module,
+        config: AdaptiveCacheConfig | None = None,
+        *,
+        auto_total_steps: int | None = None,
+    ) -> None:
+        super().__init__(
+            denoiser,
+            AdaptiveResidualCache(config),
+            auto_total_steps=auto_total_steps,
+        )
 
 
 def install_on_lerobot_policy(

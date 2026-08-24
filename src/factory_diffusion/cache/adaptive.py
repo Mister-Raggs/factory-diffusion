@@ -23,6 +23,7 @@ class AdaptiveCacheConfig:
     warmup_steps: int = 2
     force_compute_last: int = 2
     max_consecutive_skips: int | None = None
+    target_recomputations: int | None = None
     epsilon: float = 1e-8
 
     def __post_init__(self) -> None:
@@ -34,6 +35,10 @@ class AdaptiveCacheConfig:
             raise ValueError("force_compute_last must be non-negative")
         if self.max_consecutive_skips is not None and self.max_consecutive_skips < 1:
             raise ValueError("max_consecutive_skips must be positive when provided")
+        if self.target_recomputations is not None and self.target_recomputations < 1:
+            raise ValueError("target_recomputations must be positive when provided")
+        if self.target_recomputations is not None and self.max_consecutive_skips is not None:
+            raise ValueError("target_recomputations and max_consecutive_skips cannot be combined")
         if self.epsilon <= 0:
             raise ValueError("epsilon must be positive")
 
@@ -71,10 +76,21 @@ class AdaptiveResidualCache:
         self.accumulated_error = 0.0
         self.sensitivity: float | None = None
         self.consecutive_skips = 0
+        self.recomputed_steps = 0
         self._previous_input: Tensor | None = None
         self._last_computed_input: Tensor | None = None
         self._last_computed_output: Tensor | None = None
         self._cached_transformation: Tensor | None = None
+
+        if total_steps is not None and self.config.target_recomputations is not None:
+            target = self.config.target_recomputations
+            if target > total_steps:
+                raise ValueError("target_recomputations cannot exceed total_steps")
+            mandatory = sum(self._is_mandatory(step) for step in range(total_steps))
+            if target < mandatory:
+                raise ValueError(
+                    "target_recomputations cannot be smaller than the warmup/final-step guard union"
+                )
 
     @staticmethod
     def _mean_absolute(tensor: Tensor) -> Tensor:
@@ -94,6 +110,33 @@ class AdaptiveResidualCache:
             and self.consecutive_skips >= self.config.max_consecutive_skips
         ):
             return "skip-limit"
+        return None
+
+    def _is_mandatory(self, step_index: int) -> bool:
+        if step_index < self.config.warmup_steps:
+            return True
+        if self.total_steps is None:
+            return False
+        final_region = max(0, self.total_steps - self.config.force_compute_last)
+        return step_index >= final_region
+
+    def _budget_decision(self, step_index: int) -> str | None:
+        """Force optional steps only when needed to land on an exact NFE budget."""
+
+        target = self.config.target_recomputations
+        if target is None or self.total_steps is None or self._is_mandatory(step_index):
+            return None
+
+        remaining_budget = target - self.recomputed_steps
+        future_steps = range(step_index + 1, self.total_steps)
+        future_mandatory = sum(self._is_mandatory(step) for step in future_steps)
+        future_optional = (self.total_steps - step_index - 1) - future_mandatory
+        optional_budget = remaining_budget - future_mandatory
+
+        if optional_budget <= 0:
+            return "budget-reserved"
+        if optional_budget >= future_optional + 1:
+            return "budget-required"
         return None
 
     def _record_computation(self, model_input: Tensor, output: Tensor) -> None:
@@ -130,9 +173,21 @@ class AdaptiveResidualCache:
             raise ValueError("step_index exceeds the trajectory length supplied to reset")
 
         forced_reason = self._must_compute(step_index)
+        budget_reason = self._budget_decision(step_index)
         predicted_error = 0.0
 
-        if forced_reason is None:
+        if forced_reason is None and budget_reason == "budget-required":
+            forced_reason = budget_reason
+        elif forced_reason is None and budget_reason == "budget-reserved":
+            if self._cached_transformation is None:
+                raise RuntimeError("an NFE budget cannot skip before a transformation is cached")
+            output = model_input + self._cached_transformation.to(
+                device=model_input.device, dtype=model_input.dtype
+            )
+            self.consecutive_skips += 1
+            reason = budget_reason
+            recomputed = False
+        elif forced_reason is None:
             assert self._previous_input is not None
             assert self._last_computed_output is not None
             input_change = self._mean_absolute(model_input - self._previous_input)
@@ -169,6 +224,7 @@ class AdaptiveResidualCache:
             if not isinstance(output, Tensor):
                 raise TypeError("compute must return a torch.Tensor")
             self._record_computation(model_input, output)
+            self.recomputed_steps += 1
             reason = forced_reason
             recomputed = True
         else:
@@ -176,6 +232,14 @@ class AdaptiveResidualCache:
 
         self._previous_input = model_input.detach().clone()
         self.next_step += 1
+        if (
+            self.total_steps == self.next_step
+            and self.config.target_recomputations is not None
+            and self.recomputed_steps != self.config.target_recomputations
+        ):
+            raise RuntimeError(
+                "adaptive cache did not satisfy the requested target_recomputations budget"
+            )
         return CacheStep(
             output=output,
             recomputed=recomputed,

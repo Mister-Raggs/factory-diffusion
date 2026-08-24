@@ -69,11 +69,42 @@ class AdaptiveResidualCacheTest(unittest.TestCase):
             {"warmup_steps": 0},
             {"force_compute_last": -1},
             {"max_consecutive_skips": 0},
+            {"target_recomputations": 0},
+            {"target_recomputations": 5, "max_consecutive_skips": 2},
             {"epsilon": 0},
         ]
         for kwargs in invalid:
             with self.subTest(kwargs=kwargs), self.assertRaises(ValueError):
                 AdaptiveCacheConfig(**kwargs)
+
+    def test_exact_budget_is_met_without_breaking_guards(self) -> None:
+        cache = AdaptiveResidualCache(
+            AdaptiveCacheConfig(
+                threshold=10.0,
+                warmup_steps=2,
+                force_compute_last=2,
+                target_recomputations=6,
+            )
+        )
+        cache.reset(total_steps=10)
+        results = []
+        for step in range(10):
+            model_input = torch.tensor([float(step)])
+            results.append(cache.run(step, model_input, lambda value=model_input: value + 2))
+
+        self.assertEqual(sum(result.recomputed for result in results), 6)
+        self.assertTrue(all(results[index].recomputed for index in (0, 1, 8, 9)))
+
+    def test_impossible_exact_budget_is_rejected(self) -> None:
+        cache = AdaptiveResidualCache(
+            AdaptiveCacheConfig(
+                warmup_steps=2,
+                force_compute_last=2,
+                target_recomputations=3,
+            )
+        )
+        with self.assertRaisesRegex(ValueError, "guard union"):
+            cache.reset(total_steps=10)
 
 
 if __name__ == "__main__":

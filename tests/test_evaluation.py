@@ -6,7 +6,12 @@ import torch
 from torch import nn
 
 from factory_diffusion.cache import AdaptiveCacheConfig
-from factory_diffusion.evaluation import compare_runs, run_cached_sampler, run_uncached_sampler
+from factory_diffusion.evaluation import (
+    compare_runs,
+    run_cached_sampler,
+    run_fixed_sampler,
+    run_uncached_sampler,
+)
 
 
 class AdditiveDenoiser(nn.Module):
@@ -69,6 +74,31 @@ class EvaluationTest(unittest.TestCase):
         self.assertEqual(cached.skipped_steps, 1)
         self.assertEqual(paired.action_chunk_mse, 0.0)
         self.assertEqual(paired.first_action_max_error, 0.0)
+
+    def test_reduced_step_run_restores_configured_steps(self) -> None:
+        diffusion = FakeDiffusion()
+        run = run_uncached_sampler(
+            diffusion,
+            global_cond=torch.zeros((1, 4)),
+            noise=torch.zeros((1, 10, 2)),
+            num_inference_steps=2,
+        )
+
+        self.assertEqual(len(run.trace.steps), 2)
+        self.assertEqual(diffusion.num_inference_steps, 4)
+
+    def test_fixed_sampler_uses_exact_budget(self) -> None:
+        diffusion = FakeDiffusion()
+        run = run_fixed_sampler(
+            diffusion,
+            global_cond=torch.zeros((1, 4)),
+            noise=torch.zeros((1, 10, 2)),
+            recomputations=3,
+            warmup_steps=1,
+            force_compute_last=1,
+        )
+
+        self.assertEqual(sum(step.recomputed for step in run.steps), 3)
 
 
 if __name__ == "__main__":
