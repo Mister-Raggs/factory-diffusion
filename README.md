@@ -146,8 +146,11 @@ The Phase 1.5 offline harness is implemented and locally validated:
 - the unit, lint, formatting, and compilation checks pass in the standalone
   Factory Diffusion environment.
 
-These checks establish reproducibility, not the research result. The small
-end-to-end smoke run and full 100-sample matched-NFE evaluation remain to be
+The end-to-end smoke run also passes on three real conditioning samples at
+budget `k=5`. Its two held-out samples exercise DDIM-5, fixed reuse, and
+adaptive reuse with exactly five denoiser calls each. This establishes that the
+integrated report path works; the sample is intentionally too small to support
+a method comparison. The full 100-sample matched-NFE evaluation remains to be
 executed.
 
 The real-conditioning and matched-NFE harness is implemented in
