@@ -6,11 +6,12 @@ Before changing this repository, read:
 2. `docs/HARDENING_REVIEW.md`
 3. `docs/experiment_protocol.md`
 
-The current scientific gate is Phase 1.5: a real-conditioning,
-matched-function-evaluation comparison between reduced-step DDIM,
-fixed-interval reuse, and adaptive caching. Do not start CUDA, closed-loop,
-Robomimic, or Factory SRE work until the Phase 1.5 kill criteria have been
-evaluated.
+Experiment 1 is complete: adaptive residual caching failed its matched-NFE
+gate and is not to be revived. Experiment 2's calibration-only search for
+few-step DDIM schedules passed its frozen held-out gate at all four NFE
+budgets. The next authorized scientific step is a small paired closed-loop
+PushT evaluation of standard versus optimized schedules. Do not start CUDA,
+Robomimic, or Factory SRE work until closed-loop task success is established.
 
 Repository boundaries:
 

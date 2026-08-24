@@ -7,17 +7,20 @@ keeps them beside the code. Read it before planning or implementing a phase.
 ## Current objective
 
 Factory Diffusion is a matched-compute study of inference shortcuts for
-diffusion-based robot policies.
+diffusion-based robot policies. Experiment 1 is complete and killed adaptive
+residual caching. Experiment 2 found that calibration-selected DDIM timesteps
+preserve DDIM-10 actions better than standard few-step schedules offline.
 
-The primary question is:
+The current question is:
 
-> At the same number of denoiser function evaluations, does adaptive caching
-> preserve action quality and closed-loop task success better than simply
-> running fewer DDIM steps?
+> At the same 2--5 denoiser calls, can a timestep schedule selected on a small
+> calibration split preserve DDIM-10 actions better than the standard DDIM-k
+> schedule without retraining?
 
-This replaces the earlier, overly broad claim that an EasyCache-style mechanism
-is itself a novel way to accelerate Diffusion Policy. Direct caching prior art
-already exists, and reduced-step DDIM is the essential free baseline.
+This follows directly from Experiment 1 rather than rescuing its failed cache
+mechanism. Reduced-step DDIM remains the baseline. The current question is now
+whether the offline action-fidelity improvement produces equal or better
+closed-loop PushT task success at the same exact NFE.
 
 ## Repository topology and boundaries
 
@@ -151,28 +154,45 @@ Stop the adaptive-caching acceleration thesis if any of the following holds:
 If the thesis stops, preserve the harness and report the matched-budget negative
 result. Do not rescue it by adding unrelated mechanisms or a bespoke task.
 
-## Work that is not authorized by the Phase 1.5 result
+## Work authorized after Experiment 2
 
-Because Phase 1.5 did not pass, the following planned work is not justified:
+Phase 1.5 did not authorize downstream work for residual caching. Experiment 2
+is a separate schedule-optimization mechanism and passed its precommitted
+offline gate at all four budgets. It authorizes only the next staged test:
 
-1. CUDA profiling with warm/cold runs, synchronization, and a compiled
-   uncached baseline.
-2. Paired closed-loop PushT evaluation using common random numbers.
-3. A preregistered non-inferiority margin and a reported achieved minimum
-   detectable effect.
-4. At most two standard downstream benchmarks if compatible checkpoints load.
-5. One Factory SRE demonstration showing the selected inference method; it is
-   not an experimental arm.
+1. A small paired closed-loop PushT calibration arm using common random
+   numbers, followed by a frozen evaluation if the integration is sound.
+2. Standard DDIM-k versus the already selected optimized schedules only; do
+   not retune schedules on closed-loop evaluation episodes.
+3. Exact NFE and task success as primary controls. Treat CPU timing as
+   diagnostic until a later CUDA timing protocol is frozen.
+
+CUDA profiling, Robomimic, and Factory SRE remain deferred until the
+closed-loop result establishes that the offline gains matter to task success.
+
+## Experiment 2 offline result
+
+On the frozen 25-sample calibration and 75-sample held-out split, optimized
+schedules beat standard DDIM-k on both mean action-chunk MSE and mean
+first-action pixel error at every exact NFE budget from two through five. The
+selected schedules are `(70, 0)`, `(80, 10, 0)`, `(90, 50, 10, 0)`, and
+`(90, 70, 30, 10, 0)`. All paired 95% bootstrap confidence intervals for both
+improvements exclude zero. See `reports/experiment2/SUMMARY.md`.
+
+This supports schedule optimization as an offline approximation method. It
+does not yet show better task success or wall-clock acceleration.
 
 ## Final deliverable
 
-The scientific deliverable is the completed matched-budget negative result:
-reduced-step DDIM is better than the tested fixed and adaptive transformation
-reuse methods at the same NFE on this policy.
+The current scientific deliverable combines a clean negative and a positive:
+residual reuse loses to reduced-step DDIM at matched NFE, while selecting the
+few-step DDIM timesteps on a small task-specific calibration split improves
+offline action fidelity at the same NFE.
 
-The visual deliverable, if the method survives, is a short factory
-service/docking demonstration with an overlay of NFE, cache decisions, and
-task status. It illustrates the result but does not establish it.
+The visual deliverable, if the schedule method survives closed loop, is a
+short factory service/docking demonstration with an overlay of NFE, cache
+decisions, and task status. It illustrates the result but does not establish
+it.
 
 ## Data and compute decisions
 

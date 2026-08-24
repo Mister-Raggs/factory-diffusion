@@ -207,6 +207,58 @@ the immutable dataset and checkpoint revisions, exact NFE for every run,
 normalized action error, and action error converted back to PushT pixels.
 Temporal thirds are sampling strata, not verified approach/contact labels.
 
+## Experiment 2: Task-calibrated DDIM schedules
+
+Experiment 1 showed that a coherent shorter DDIM trajectory preserves actions
+better than residual reuse. Experiment 2 asks the direct follow-up:
+
+> At the same 2--5 denoiser calls, can a timestep schedule selected on a small
+> calibration split preserve DDIM-10 actions better than LeRobot's standard
+> DDIM-k schedule, without changing policy weights?
+
+The implementation enumerates schedules on the training-timestep grid
+`{0, 10, ..., 90}`, adds the standard Diffusers schedule as a candidate, and
+selects one schedule per budget using only 25 calibration observations. The
+four schedules are frozen before a paired evaluation on the existing 75
+held-out observations.
+
+The project proceeds to closed-loop PushT only if optimized schedules lower
+held-out mean action-chunk MSE without increasing mean first-action pixel error
+at three of four budgets. The full offline experiment passed this gate at all
+four budgets:
+
+| NFE | Standard schedule | Optimized schedule | Standard first-action error (px) | Optimized (px) |
+| ---: | :--- | :--- | ---: | ---: |
+| 2 | `50, 0` | `70, 0` | 3.107 | **1.447** |
+| 3 | `66, 33, 0` | `80, 10, 0` | 0.837 | **0.360** |
+| 4 | `75, 50, 25, 0` | `90, 50, 10, 0` | 0.493 | **0.109** |
+| 5 | `80, 60, 40, 20, 0` | `90, 70, 30, 10, 0` | 0.316 | **0.049** |
+
+The optimized schedules also lowered mean action-chunk MSE at every budget.
+All paired 95% bootstrap intervals for both reported improvements exclude
+zero. This is an offline action-fidelity result, not yet a task-success or
+wall-clock acceleration claim. The next authorized experiment is a paired
+closed-loop PushT evaluation of standard versus optimized schedules.
+
+See [the frozen Experiment 2 protocol](docs/experiment2_protocol.md) and
+[the Experiment 2 result](reports/experiment2/SUMMARY.md).
+
+Reproduce the full offline experiment with:
+
+```bash
+PYTHONPATH=src python experiments/04_optimize_ddim_schedule.py \
+  --device cpu \
+  --samples 100 \
+  --calibration-samples 25 \
+  --budgets 2,3,4,5 \
+  --grid-step 10 \
+  --batch-size 3 \
+  --local-files-only \
+  --dataset-root data/pusht-keypoints \
+  --cache-dir .cache/huggingface/hub \
+  --output-dir outputs/experiment2/schedules
+```
+
 ## Attribution
 
 The adaptive rule is inspired by *Less is Enough: Training-Free Video

@@ -16,6 +16,7 @@ from factory_diffusion.cache import (
     guarded_uniform_schedule,
 )
 from factory_diffusion.integrations.lerobot import ResidualCache, ResidualReuseDenoiser
+from factory_diffusion.schedules import ddim_step_to, validate_ddim_schedule
 from factory_diffusion.trace import DenoisingTrace, TraceDenoiser
 
 
@@ -145,6 +146,61 @@ def run_uncached_sampler(
         diffusion.unet = original_unet
         diffusion.num_inference_steps = configured_steps
     return UncachedRun(actions=actions.detach(), trace=trace, wall_ms=wall_ms)
+
+
+@torch.inference_mode()
+def run_explicit_schedule_sampler(
+    diffusion: nn.Module,
+    *,
+    global_cond: Tensor,
+    noise: Tensor,
+    timesteps: tuple[int, ...],
+) -> UncachedRun:
+    """Sample with an explicit deterministic DDIM timestep sequence."""
+
+    original_unet, _ = _validate_diffusion(diffusion)
+    scheduler = getattr(diffusion, "noise_scheduler", None)
+    if scheduler is None or not hasattr(scheduler, "alphas_cumprod"):
+        raise TypeError("diffusion must expose a compatible DDIM noise_scheduler")
+    schedule = validate_ddim_schedule(
+        timesteps,
+        num_train_timesteps=int(scheduler.config.num_train_timesteps),
+    )
+    if global_cond.shape[0] != noise.shape[0]:
+        raise ValueError("global_cond and noise batch sizes must match")
+
+    tracer = TraceDenoiser(original_unet, auto_total_steps=len(schedule))
+    tracer.eval()
+    sample = noise.detach().clone()
+    try:
+        diffusion.unet = tracer
+        _synchronize(sample)
+        started = time.perf_counter()
+        for index, timestep in enumerate(schedule):
+            model_output = diffusion.unet(
+                sample,
+                torch.full(
+                    sample.shape[:1],
+                    timestep,
+                    dtype=torch.long,
+                    device=sample.device,
+                ),
+                global_cond=global_cond,
+            )
+            previous_timestep = schedule[index + 1] if index + 1 < len(schedule) else -1
+            sample = ddim_step_to(
+                scheduler,
+                model_output,
+                timestep,
+                previous_timestep,
+                sample,
+            )
+        _synchronize(sample)
+        wall_ms = (time.perf_counter() - started) * 1000
+        trace = tracer.trace()
+    finally:
+        diffusion.unet = original_unet
+    return UncachedRun(actions=sample.detach(), trace=trace, wall_ms=wall_ms)
 
 
 @torch.inference_mode()

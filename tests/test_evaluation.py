@@ -9,9 +9,11 @@ from factory_diffusion.cache import AdaptiveCacheConfig
 from factory_diffusion.evaluation import (
     compare_runs,
     run_cached_sampler,
+    run_explicit_schedule_sampler,
     run_fixed_sampler,
     run_uncached_sampler,
 )
+from factory_diffusion.schedules import standard_ddim_schedule
 
 
 class AdditiveDenoiser(nn.Module):
@@ -43,6 +45,43 @@ class FakeDiffusion(nn.Module):
         for timestep in range(self.num_inference_steps):
             output = self.unet(sample, timestep, global_cond=global_cond)
             sample = sample + output * 0.1
+        return sample
+
+
+class FakeDDIMDiffusion(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        try:
+            from diffusers import DDIMScheduler
+        except ImportError as error:  # pragma: no cover - optional dependency
+            raise unittest.SkipTest(str(error)) from error
+        self.unet = AdditiveDenoiser()
+        self.num_inference_steps = 5
+        self.noise_scheduler = DDIMScheduler(
+            num_train_timesteps=100,
+            beta_schedule="squaredcos_cap_v2",
+            clip_sample=True,
+            prediction_type="epsilon",
+        )
+
+    def conditional_sample(
+        self,
+        batch_size: int,
+        global_cond: torch.Tensor,
+        generator: torch.Generator,
+        noise: torch.Tensor,
+    ) -> torch.Tensor:
+        del batch_size
+        sample = noise
+        self.noise_scheduler.set_timesteps(self.num_inference_steps)
+        for timestep in self.noise_scheduler.timesteps:
+            output = self.unet(sample, timestep, global_cond=global_cond)
+            sample = self.noise_scheduler.step(
+                output,
+                timestep,
+                sample,
+                generator=generator,
+            ).prev_sample
         return sample
 
 
@@ -99,6 +138,27 @@ class EvaluationTest(unittest.TestCase):
         )
 
         self.assertEqual(sum(step.recomputed for step in run.steps), 3)
+
+    def test_explicit_standard_schedule_matches_native_sampler(self) -> None:
+        diffusion = FakeDDIMDiffusion()
+        noise = torch.randn((2, 10, 2), generator=torch.Generator().manual_seed(11))
+        conditioning = torch.zeros((2, 4))
+        schedule = standard_ddim_schedule(diffusion.noise_scheduler, 5)
+
+        native = run_uncached_sampler(
+            diffusion,
+            global_cond=conditioning,
+            noise=noise,
+        )
+        explicit = run_explicit_schedule_sampler(
+            diffusion,
+            global_cond=conditioning,
+            noise=noise,
+            timesteps=schedule,
+        )
+
+        torch.testing.assert_close(explicit.actions, native.actions)
+        self.assertEqual(len(explicit.trace.steps), 5)
 
 
 if __name__ == "__main__":

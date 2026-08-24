@@ -1,0 +1,60 @@
+{
+  "status": "experiment-2-schedule-optimization",
+  "decision": "proceed-to-closed-loop",
+  "optimized_budget_wins": 4,
+  "required_budget_wins": 3,
+  "seed": 0,
+  "samples": 100,
+  "calibration_samples": 25,
+  "evaluation_samples": 75,
+  "batch_size": 3,
+  "checkpoint_revision": "58570fc39828d28efa5457aa297a52be27ac3a10",
+  "dataset_revision": "ace8c161a68bc025c21a5f29f85b86a9a2c5e64b",
+  "results": [
+    {
+      "nfe": 2,
+      "standard_schedule": [50, 0],
+      "optimized_schedule": [70, 0],
+      "standard_first_action_error_pixels": 3.106531159281731,
+      "optimized_first_action_error_pixels": 1.4474139392375946,
+      "standard_action_chunk_mse_normalized": 0.000346139798848526,
+      "optimized_action_chunk_mse_normalized": 0.00010584154894142254,
+      "optimized_wins": true
+    },
+    {
+      "nfe": 3,
+      "standard_schedule": [66, 33, 0],
+      "optimized_schedule": [80, 10, 0],
+      "standard_first_action_error_pixels": 0.8365598496794701,
+      "optimized_first_action_error_pixels": 0.3603086270391941,
+      "standard_action_chunk_mse_normalized": 0.00006619786422438286,
+      "optimized_action_chunk_mse_normalized": 0.000007039382547920544,
+      "optimized_wins": true
+    },
+    {
+      "nfe": 4,
+      "standard_schedule": [75, 50, 25, 0],
+      "optimized_schedule": [90, 50, 10, 0],
+      "standard_first_action_error_pixels": 0.4932204148173332,
+      "optimized_first_action_error_pixels": 0.10948918043325345,
+      "standard_action_chunk_mse_normalized": 0.000016549552340829148,
+      "optimized_action_chunk_mse_normalized": 0.0000011472077330276774,
+      "optimized_wins": true
+    },
+    {
+      "nfe": 5,
+      "standard_schedule": [80, 60, 40, 20, 0],
+      "optimized_schedule": [90, 70, 30, 10, 0],
+      "standard_first_action_error_pixels": 0.31639241516590116,
+      "optimized_first_action_error_pixels": 0.049049195274710654,
+      "standard_action_chunk_mse_normalized": 0.000005460178266905776,
+      "optimized_action_chunk_mse_normalized": 2.3257518612207483e-7,
+      "optimized_wins": true
+    }
+  ],
+  "limitations": [
+    "Schedule selection optimizes offline DDIM-10 action fidelity, not task success.",
+    "Temporal thirds are coverage strata, not semantic contact labels.",
+    "CPU timing is diagnostic and is not an acceleration claim."
+  ]
+}
