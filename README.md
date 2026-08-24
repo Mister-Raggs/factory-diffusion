@@ -1,8 +1,9 @@
 # Factory Diffusion
 
-Factory Diffusion studies whether runtime-adaptive residual caching can reduce
-the inference latency of diffusion-based robot policies without materially
-reducing closed-loop task success.
+Factory Diffusion is a matched-compute study of inference shortcuts for
+diffusion-based robot policies. It asks whether adaptive caching preserves
+action quality and closed-loop task success better than simply running fewer
+DDIM steps at the same denoiser function-evaluation budget.
 
 The first target is LeRobot's Diffusion Policy. Factory SRE, the hackathon
 simulation, is an optional downstream environment for battery-service and
@@ -10,14 +11,17 @@ docking evaluation; it is deliberately not copied into this repository.
 
 ## Research question
 
-Can an EasyCache-style accumulated-error rule safely reuse a denoiser's
-transformation vector across adjacent action-denoising steps, and how does the
-threshold move the latency-versus-success Pareto frontier?
+At a fixed budget of denoiser function evaluations, which method best preserves
+the full DDIM-10 policy's actions and closed-loop success: reduced-step DDIM,
+fixed-interval reuse, or adaptive residual caching?
 
-This is a transfer study, not an assumption that video-model results apply to
-robot policies. LeRobot's baseline uses a temporal 1D U-Net rather than a
-Wan-style video DiT, so residual stability is tested before training or large
-rollout sweeps.
+Direct caching prior art for Diffusion Policy already exists. The purpose of
+this repository is therefore not to claim that caching transfers to robotics,
+but to run the matched-budget comparison that determines whether caching buys
+anything beyond fewer denoising steps.
+
+Read [the durable project context](docs/PROJECT_CONTEXT.md) and
+[the hardening review](docs/HARDENING_REVIEW.md) before extending the project.
 
 ## Repository boundaries
 
@@ -43,10 +47,15 @@ Phase 1 is complete on the pinned public keypoint-conditioned PushT policy:
 - exact online cached runs that include scheduler-path divergence; and
 - zero-threshold equivalence verified for every seed.
 
-The provisional result is to proceed to CUDA and closed-loop validation. With
-two warmup steps, two forced final recomputations and at most two consecutive
-skips, threshold `0.15` skipped 20–40% of the ten denoising calls across the
-six probes. Its worst normalized first-action deviation was `0.03386`.
+With two warmup steps, two forced final recomputations and at most two
+consecutive skips, threshold `0.15` skipped 20–40% of the ten denoising calls
+across the six probes. Its worst normalized first-action deviation was
+`0.03386`.
+
+That result is now treated only as a mechanism smoke test. The conditioning was
+synthetic and out of distribution, the sample was small, and no matched-NFE
+DDIM baseline was run. The old provisional decision to proceed directly to
+CUDA and closed-loop validation has been superseded by Phase 1.5.
 
 See [the Phase 1 summary](reports/phase1/SUMMARY.md) and its machine-readable
 [metrics](reports/phase1/summary.json). CPU timings in that report are strictly
@@ -101,19 +110,24 @@ PYTHONPATH=src python experiments/02_summarize_phase1.py outputs/phase1 \
 The probe downloads the roughly 1 GB checkpoint into the gitignored local
 cache on first use. Generated traces and outputs are also gitignored.
 
-## Experiment gates
+## Current gate: Phase 1.5
 
-1. Profile the uncached policy and confirm repeated U-Net calls dominate
-   action-chunk latency.
-2. Capture an uncached denoising trace using fixed observations, seeds and
-   initial noise.
-3. Measure input change, output change, learned sensitivity and
-   transformation-vector drift step by step.
-4. Screen adaptive thresholds offline, then rerun selected thresholds online
-   with the real scheduler.
-5. In Phase 2, compare reduced-step DDIM, `torch.compile`, fixed skipping and
-   adaptive caching on CUDA and in closed loop.
-6. Only then train or evaluate in Factory SRE and on SO-101 hardware.
+No project credits should be spent until these zero-credit checks complete:
+
+1. Repeat the trace and threshold study on at least 100 real PushT conditioning
+   examples spanning early, approach, and contact phases.
+2. At each budget `k in {5, 6, 7, 8}`, compare plain DDIM-k,
+   fixed-interval reuse, and adaptive caching using exactly k U-Net calls.
+3. Measure the visual encoder/U-Net latency split at the real input shape.
+4. Check whether released Robomimic checkpoints load without retraining.
+
+Adaptive caching proceeds only if it beats DDIM-k on action error for at least
+three of four budgets, retains meaningful safe skip opportunities on real
+conditioning, and targets a material share of visual-policy latency. Otherwise
+the matched-budget negative result is the deliverable.
+
+CUDA and closed-loop evaluation come after this gate. Factory SRE remains an
+optional final demonstration rather than an experimental benchmark.
 
 Cache state is reset for every action chunk. State must never cross policy
 queries or episode boundaries.

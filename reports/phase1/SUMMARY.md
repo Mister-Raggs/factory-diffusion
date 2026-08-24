@@ -2,6 +2,11 @@
 
 Decision: **proceed-to-cuda-and-closed-loop-validation** (provisional).
 
+> **Superseded after hardening review:** Phase 1 is now treated as a mechanism
+> smoke test because it used synthetic conditioning and omitted a matched-NFE
+> DDIM baseline. The active decision is to run zero-credit Phase 1.5 before
+> CUDA or closed-loop work. See `docs/PROJECT_CONTEXT.md`.
+
 Checkpoint: `lerobot/diffusion_pusht_keypoints` at `58570fc39828d28efa5457aa297a52be27ac3a10`.
 Seeds: `[0, 1, 2, 3, 4, 5]`. Device: `cpu`.
 Mean denoiser share: `0.998`.
