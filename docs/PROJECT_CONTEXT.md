@@ -27,8 +27,8 @@ closed-loop PushT task success at the same exact NFE.
 ### This repository
 
 - GitHub: `Mister-Raggs/factory-diffusion`
-- Purpose: cache implementation, policy adapters, reproducible benchmarks,
-  reports, and later demo integration protocol.
+- Purpose: task-calibrated few-step sampling, policy adapters, reproducible
+  benchmarks, historical cache experiments, and a later demo protocol.
 - Default branch: `main`.
 
 ### Hackathon repository
@@ -190,8 +190,8 @@ few-step DDIM timesteps on a small task-specific calibration split improves
 offline action fidelity at the same NFE.
 
 The visual deliverable, if the schedule method survives closed loop, is a
-short factory service/docking demonstration with an overlay of NFE, cache
-decisions, and task status. It illustrates the result but does not establish
+short factory service/docking demonstration with an overlay of NFE, selected
+schedule, and task status. It illustrates the result but does not establish
 it.
 
 ## Data and compute decisions
@@ -199,14 +199,17 @@ it.
 - Do not download large NVIDIA human-video datasets for the current question.
   Raw human video does not supply the robot actions required by this benchmark
   and would introduce a separate embodiment problem.
-- Do not spend Antioch or Nebius credits before Phase 1.5 is evaluated.
+- Spend compute first on the staged paired closed-loop PushT test authorized by
+  Experiment 2; do not begin broad sweeps or factory integration yet.
 - Keep checkpoints, datasets, generated traces, and rollout videos gitignored.
 - Calibrate one small rollout arm before authorizing a full sweep.
 
 ## Attribution and framing
 
-The implementation is inspired by EasyCache-style runtime-adaptive caching; it
-does not claim invention of the public EasyCache work. Relevant direct and
-adjacent prior art includes BAC, reduced-step DDIM, one-step/consistency
-distillation, ActionCache, VLA-Cache, and Real-Time Chunking. The README and any
-write-up must present the matched-NFE comparison as the reason for this study.
+Experiment 1 was inspired by EasyCache-style runtime-adaptive caching; it does
+not claim invention of the public EasyCache work. The current project claim is
+the narrower matched-NFE result for calibration-selected DDIM schedules.
+Relevant adjacent work includes BAC, reduced-step DDIM, optimized timestep
+selection, one-step/consistency distillation, ActionCache, VLA-Cache, and
+Real-Time Chunking. Any write-up must preserve both the cache negative result
+and the offline-only limitation of Experiment 2.

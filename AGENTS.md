@@ -5,6 +5,7 @@ Before changing this repository, read:
 1. `docs/PROJECT_CONTEXT.md`
 2. `docs/HARDENING_REVIEW.md`
 3. `docs/experiment_protocol.md`
+4. `docs/experiment2_protocol.md`
 
 Experiment 1 is complete: adaptive residual caching failed its matched-NFE
 gate and is not to be revived. Experiment 2's calibration-only search for

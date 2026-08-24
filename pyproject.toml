@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "factory-diffusion"
 version = "0.1.0"
-description = "Adaptive residual caching experiments for diffusion-based robot control."
+description = "Task-calibrated few-step sampling for diffusion-based robot control."
 readme = "README.md"
 requires-python = ">=3.10,<3.13"
 dependencies = [
