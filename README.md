@@ -79,6 +79,11 @@ reproducibility, but they are no longer the active method or project claim.
 The optimized schedules, held-out split, and offline selection objective are
 frozen. They must not be retuned on closed-loop evaluation episodes.
 
+The paired design, 50 evaluation seeds, success criterion, and non-inferiority
+gate are frozen in [the Experiment 3 protocol](docs/experiment3_protocol.md).
+The headless checkpoint-to-controller-to-physics smoke test passes for both
+arms, including full 300-step termination and exact NFE accounting.
+
 ## Repository layout
 
 - `src/factory_diffusion/schedules.py`: explicit deterministic DDIM schedules
@@ -88,6 +93,7 @@ frozen. They must not be retuned on closed-loop evaluation episodes.
 - `src/factory_diffusion/evaluation.py`: exact-NFE samplers and evaluation
   helpers.
 - `experiments/04_optimize_ddim_schedule.py`: Experiment 2 end-to-end runner.
+- `experiments/05_closed_loop_pusht.py`: paired closed-loop Experiment 3 runner.
 - `reports/experiment2`: durable Experiment 2 results.
 - `src/factory_diffusion/cache` and `experiments/01_*` through `03_*`:
   preserved Experiment 1 implementation and evaluation.
@@ -139,6 +145,29 @@ held-out rows, confidence intervals, and the frozen decision.
 For a cheap integration check, reduce `--samples`, `--calibration-samples`, and
 `--budgets`. Any noncanonical configuration is labeled `smoke-only` and cannot
 produce a scientific proceed/stop decision.
+
+## Run Experiment 3
+
+The full paired closed-loop evaluation uses 50 environment seeds at all four
+frozen budgets, for 400 total episodes:
+
+```bash
+SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy \
+HF_HUB_OFFLINE=1 PYTHONPATH=src python experiments/05_closed_loop_pusht.py \
+  --device cpu \
+  --seeds 0:50 \
+  --budgets 2,3,4,5 \
+  --max-steps 300 \
+  --local-files-only \
+  --dataset-root data/pusht-keypoints \
+  --cache-dir .cache/huggingface/hub \
+  --output-dir outputs/experiment3/closed-loop
+```
+
+The runner atomically checkpoints after every episode. Restarting the same
+command skips completed method/seed/budget cells, while a conflicting run
+configuration is rejected. Generated partial and final reports remain
+gitignored.
 
 ## Historical Experiment 1 reproduction
 

@@ -170,6 +170,11 @@ offline gate at all four budgets. It authorizes only the next staged test:
 CUDA profiling, Robomimic, and Factory SRE remain deferred until the
 closed-loop result establishes that the offline gains matter to task success.
 
+The Experiment 3 protocol is frozen in `docs/experiment3_protocol.md`. Its
+headless integration smoke test passes, and the resumable runner is
+`experiments/05_closed_loop_pusht.py`. Smoke seeds 1000 and 1001 are excluded
+from the 50-seed evaluation and cannot be used to revise the design.
+
 ## Experiment 2 offline result
 
 On the frozen 25-sample calibration and 75-sample held-out split, optimized

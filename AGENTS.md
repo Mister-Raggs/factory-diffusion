@@ -6,6 +6,7 @@ Before changing this repository, read:
 2. `docs/HARDENING_REVIEW.md`
 3. `docs/experiment_protocol.md`
 4. `docs/experiment2_protocol.md`
+5. `docs/experiment3_protocol.md`
 
 Experiment 1 is complete: adaptive residual caching failed its matched-NFE
 gate and is not to be revived. Experiment 2's calibration-only search for
@@ -13,6 +14,8 @@ few-step DDIM schedules passed its frozen held-out gate at all four NFE
 budgets. The next authorized scientific step is a small paired closed-loop
 PushT evaluation of standard versus optimized schedules. Do not start CUDA,
 Robomimic, or Factory SRE work until closed-loop task success is established.
+Experiment 3's schedules, seeds, metrics, and decision rule are frozen in
+`docs/experiment3_protocol.md`; smoke seeds must never enter the evaluation.
 
 Repository boundaries:
 

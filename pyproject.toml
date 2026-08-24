@@ -14,7 +14,7 @@ dependencies = [
 
 [project.optional-dependencies]
 lerobot = [
-  "lerobot==0.4.4",
+  "lerobot[pusht]==0.4.4",
 ]
 dev = [
   "ruff>=0.8",
