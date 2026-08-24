@@ -93,7 +93,18 @@ are:
 5. Keep Factory SRE as motivation and a final visual demo, not as evidence for
    the scientific claim.
 
-## Next phase: Phase 1.5
+## Phase 1.5 protocol and completed result
+
+Phase 1.5 completed with 100 real conditioning samples: 25 for calibration and
+75 held out for evaluation. Across exact NFE budgets 5, 6, 7, and 8, plain
+DDIM-k had lower mean first-action error and lower action-chunk MSE than fixed
+or adaptive residual reuse at every budget. Adaptive caching won zero of four
+budgets.
+
+This fails the precommitted requirement to win at least three budgets. The
+adaptive residual-caching acceleration thesis is stopped. Preserve the result
+as a clean negative; do not proceed to CUDA, closed-loop, Robomimic, or Factory
+SRE work for this mechanism. See `reports/phase15/SUMMARY.md`.
 
 ### A. Real conditioning
 
@@ -140,7 +151,9 @@ Stop the adaptive-caching acceleration thesis if any of the following holds:
 If the thesis stops, preserve the harness and report the matched-budget negative
 result. Do not rescue it by adding unrelated mechanisms or a bespoke task.
 
-## Work authorized only after Phase 1.5 passes
+## Work that is not authorized by the Phase 1.5 result
+
+Because Phase 1.5 did not pass, the following planned work is not justified:
 
 1. CUDA profiling with warm/cold runs, synchronization, and a compiled
    uncached baseline.
@@ -153,12 +166,9 @@ result. Do not rescue it by adding unrelated mechanisms or a bespoke task.
 
 ## Final deliverable
 
-The scientific deliverable is a matched-budget comparison, not a generalist
-robot or a new world model. A useful outcome can be either:
-
-- a positive result showing where adaptive caching beats fewer DDIM steps; or
-- a clean negative result showing that reduced-step DDIM is equally good or
-  better at the same NFE.
+The scientific deliverable is the completed matched-budget negative result:
+reduced-step DDIM is better than the tested fixed and adaptive transformation
+reuse methods at the same NFE on this policy.
 
 The visual deliverable, if the method survives, is a short factory
 service/docking demonstration with an overlay of NFE, cache decisions, and

@@ -2,6 +2,12 @@
 
 ## Current scientific gate
 
+**Outcome:** the gate is complete and did not pass. On 75 held-out real PushT
+conditioning samples, DDIM-k beat adaptive residual reuse on both mean
+first-action error and action-chunk MSE at all four exact NFE budgets. Adaptive
+won 0/4 budgets versus the required 3/4. Expensive follow-up work is stopped;
+the protocol below is retained for reproducibility.
+
 Phase 1.5 precedes CUDA profiling and closed-loop evaluation. It uses real
 PushT conditioning and compares inference methods at exactly matched denoiser
 function-evaluation (NFE) budgets.

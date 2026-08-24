@@ -1,0 +1,64 @@
+{
+  "status": "stop-adaptive-caching-thesis",
+  "reference": "ddim-10",
+  "samples": 100,
+  "calibration_samples": 25,
+  "evaluation_samples": 75,
+  "evaluation_rows": 900,
+  "exact_nfe_verified": true,
+  "checkpoint": {
+    "repo": "lerobot/diffusion_pusht_keypoints",
+    "revision": "58570fc39828d28efa5457aa297a52be27ac3a10"
+  },
+  "dataset": {
+    "repo": "lerobot/pusht_keypoints",
+    "revision": "ace8c161a68bc025c21a5f29f85b86a9a2c5e64b"
+  },
+  "selected_thresholds": {
+    "5": 0.05,
+    "6": 0.03,
+    "7": 0.03,
+    "8": 0.03
+  },
+  "results": [
+    {
+      "budget": 5,
+      "ddim_mean_first_action_error_pixels": 0.31639334122339885,
+      "fixed_mean_first_action_error_pixels": 2.3302202733357746,
+      "adaptive_mean_first_action_error_pixels": 3.83309383392334,
+      "ddim_mean_action_chunk_mse_normalized": 5.4601577720347906e-06,
+      "fixed_mean_action_chunk_mse_normalized": 0.00015500931904474178,
+      "adaptive_mean_action_chunk_mse_normalized": 0.00048820731709990167
+    },
+    {
+      "budget": 6,
+      "ddim_mean_first_action_error_pixels": 0.25990842858950297,
+      "fixed_mean_first_action_error_pixels": 0.8850880813598633,
+      "adaptive_mean_first_action_error_pixels": 1.504561882019043,
+      "ddim_mean_action_chunk_mse_normalized": 3.081674080268234e-06,
+      "fixed_mean_action_chunk_mse_normalized": 1.938164951714801e-05,
+      "adaptive_mean_action_chunk_mse_normalized": 6.864425606181612e-05
+    },
+    {
+      "budget": 7,
+      "ddim_mean_first_action_error_pixels": 0.15685894449551901,
+      "fixed_mean_first_action_error_pixels": 0.5073601214090983,
+      "adaptive_mean_first_action_error_pixels": 0.6093465042114258,
+      "ddim_mean_action_chunk_mse_normalized": 1.2534077752116937e-06,
+      "fixed_mean_action_chunk_mse_normalized": 5.882451002131953e-06,
+      "adaptive_mean_action_chunk_mse_normalized": 1.2365404712871471e-05
+    },
+    {
+      "budget": 8,
+      "ddim_mean_first_action_error_pixels": 0.13696661750475567,
+      "fixed_mean_first_action_error_pixels": 0.25069679896036784,
+      "adaptive_mean_first_action_error_pixels": 0.2749125035603841,
+      "ddim_mean_action_chunk_mse_normalized": 7.434102106766242e-07,
+      "fixed_mean_action_chunk_mse_normalized": 1.458426736604679e-06,
+      "adaptive_mean_action_chunk_mse_normalized": 2.50513627158e-06
+    }
+  ],
+  "decision_rule": "adaptive must beat DDIM-k on action error for at least three of four budgets",
+  "adaptive_budget_wins": 0,
+  "decision": "stop"
+}

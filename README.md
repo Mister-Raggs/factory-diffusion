@@ -110,7 +110,7 @@ PYTHONPATH=src python experiments/02_summarize_phase1.py outputs/phase1 \
 The probe downloads the roughly 1 GB checkpoint into the gitignored local
 cache on first use. Generated traces and outputs are also gitignored.
 
-## Current gate: Phase 1.5
+## Phase 1.5 gate and result
 
 No project credits should be spent until these zero-credit checks complete:
 
@@ -146,12 +146,26 @@ The Phase 1.5 offline harness is implemented and locally validated:
 - the unit, lint, formatting, and compilation checks pass in the standalone
   Factory Diffusion environment.
 
-The end-to-end smoke run also passes on three real conditioning samples at
-budget `k=5`. Its two held-out samples exercise DDIM-5, fixed reuse, and
-adaptive reuse with exactly five denoiser calls each. This establishes that the
-integrated report path works; the sample is intentionally too small to support
-a method comparison. The full 100-sample matched-NFE evaluation remains to be
-executed.
+The end-to-end smoke run passes, and the full 100-sample matched-NFE evaluation
+is complete. It uses 25 calibration samples and 75 held-out samples, producing
+900 method/sample/budget comparisons with exact per-run NFE.
+
+| NFE | DDIM-k first-action error (px) | Fixed reuse (px) | Adaptive reuse (px) |
+| ---: | ---: | ---: | ---: |
+| 5 | **0.316** | 2.330 | 3.833 |
+| 6 | **0.260** | 0.885 | 1.505 |
+| 7 | **0.157** | 0.507 | 0.609 |
+| 8 | **0.137** | 0.251 | 0.275 |
+
+Plain DDIM-k also has the lowest action-chunk MSE at every budget. Adaptive
+caching therefore wins zero of four budgets and fails the precommitted
+three-of-four survival criterion. The acceleration thesis stops here: CUDA,
+closed-loop, and Factory SRE work are not justified for this mechanism. The
+clean negative result is the deliverable.
+
+See [the Phase 1.5 summary](reports/phase15/SUMMARY.md) and its machine-readable
+[metrics](reports/phase15/summary.json). These are offline action-fidelity
+results against DDIM-10, not closed-loop task-success measurements.
 
 The real-conditioning and matched-NFE harness is implemented in
 `experiments/03_phase15_matched_nfe.py`. It pins the official PushT keypoint
