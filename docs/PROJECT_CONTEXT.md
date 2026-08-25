@@ -11,16 +11,30 @@ diffusion-based robot policies. Experiment 1 is complete and killed adaptive
 residual caching. Experiment 2 found that calibration-selected DDIM timesteps
 preserve DDIM-10 actions better than standard few-step schedules offline.
 
-The current question is:
+The completed Experiment 3 question was:
 
 > At the same 2--5 denoiser calls, can a timestep schedule selected on a small
-> calibration split preserve DDIM-10 actions better than the standard DDIM-k
-> schedule without retraining?
+> calibration split preserve closed-loop PushT task success better than, or at
+> least non-inferior to, the standard DDIM-k schedule?
 
 This follows directly from Experiment 1 rather than rescuing its failed cache
-mechanism. Reduced-step DDIM remains the baseline. The current question is now
-whether the offline action-fidelity improvement produces equal or better
-closed-loop PushT task success at the same exact NFE.
+mechanism. Reduced-step DDIM remains the baseline. Experiment 3 answered the
+question negatively under its frozen decision rule: optimized schedules were
+not shown non-inferior, with pooled success -1.5 points and an NFE-5 point
+estimate of -14 points versus standard schedules.
+
+The final post-hoc Experiment 2 diagnostic asked:
+
+> Does one-chunk physical divergence from DDIM-10 explain why Experiment 2's
+> offline action-fidelity gains transferred inconsistently in Experiment 3?
+
+The diagnostic completed over 244 teacher states and 1,952 one-chunk branches.
+It also favored the optimized schedule at every budget, including NFE 5, and
+therefore failed to explain the closed-loop regression. The proxy is stopped.
+See `reports/experiment2/ROLLOUT_SENSITIVITY.md`.
+
+The scientific study is archived. There is no active experiment or authorized
+CUDA, Robomimic, or Factory SRE extension in this repository.
 
 ## Repository topology and boundaries
 
@@ -154,11 +168,11 @@ Stop the adaptive-caching acceleration thesis if any of the following holds:
 If the thesis stops, preserve the harness and report the matched-budget negative
 result. Do not rescue it by adding unrelated mechanisms or a bespoke task.
 
-## Work authorized after Experiment 2
+## Completed progression after Experiment 2
 
 Phase 1.5 did not authorize downstream work for residual caching. Experiment 2
-is a separate schedule-optimization mechanism and passed its precommitted
-offline gate at all four budgets. It authorizes only the next staged test:
+was a separate schedule-optimization mechanism and passed its precommitted
+offline gate at all four budgets. It authorized only the following staged test:
 
 1. A small paired closed-loop PushT calibration arm using common random
    numbers, followed by a frozen evaluation if the integration is sound.
@@ -167,13 +181,13 @@ offline gate at all four budgets. It authorizes only the next staged test:
 3. Exact NFE and task success as primary controls. Treat CPU timing as
    diagnostic until a later CUDA timing protocol is frozen.
 
-CUDA profiling, Robomimic, and Factory SRE remain deferred until the
-closed-loop result establishes that the offline gains matter to task success.
+Experiment 3 completed that test and failed its non-inferiority rule. CUDA
+profiling, Robomimic, and Factory SRE were therefore not authorized.
 
-The Experiment 3 protocol is frozen in `docs/experiment3_protocol.md`. Its
-headless integration smoke test passes, and the resumable runner is
-`experiments/05_closed_loop_pusht.py`. Smoke seeds 1000 and 1001 are excluded
-from the 50-seed evaluation and cannot be used to revise the design.
+The Experiment 3 protocol remains frozen in `docs/experiment3_protocol.md` and
+the result is preserved in `reports/experiment3/SUMMARY.md`. Its resumable
+runner is `experiments/05_closed_loop_pusht.py`. Smoke seeds 1000 and 1001 are
+excluded from the 50-seed evaluation and did not revise the design.
 
 ## Experiment 2 offline result
 
@@ -184,37 +198,42 @@ selected schedules are `(70, 0)`, `(80, 10, 0)`, `(90, 50, 10, 0)`, and
 `(90, 70, 30, 10, 0)`. All paired 95% bootstrap confidence intervals for both
 improvements exclude zero. See `reports/experiment2/SUMMARY.md`.
 
-This supports schedule optimization as an offline approximation method. It
-does not yet show better task success or wall-clock acceleration.
+This supports schedule optimization as an offline approximation method.
+Experiment 3 subsequently showed that the advantage did not reliably transfer
+to task success; no wall-clock acceleration claim was made.
 
 ## Final deliverable
 
-The current scientific deliverable combines a clean negative and a positive:
-residual reuse loses to reduced-step DDIM at matched NFE, while selecting the
-few-step DDIM timesteps on a small task-specific calibration split improves
-offline action fidelity at the same NFE.
+The archived scientific result is a three-level proxy failure:
 
-The visual deliverable, if the schedule method survives closed loop, is a
-short factory service/docking demonstration with an overlay of NFE, selected
-schedule, and task status. It illustrates the result but does not establish
-it.
+1. adaptive residual reuse loses to ordinary reduced-step DDIM at matched NFE;
+2. calibration-selected timesteps improve both offline DDIM-10 action fidelity
+   and one-chunk physical fidelity at NFE 2--5; but
+3. those improvements do not reliably transfer to complete closed-loop task
+   success, with a -14-point NFE-5 regression and failed pooled
+   non-inferiority gate.
+
+The defensible claim is narrow: local teacher fidelity is not a reliable sole
+selection objective for these few-step PushT schedules. See
+`reports/RESULTS.md` for the public result index.
 
 ## Data and compute decisions
 
 - Do not download large NVIDIA human-video datasets for the current question.
   Raw human video does not supply the robot actions required by this benchmark
   and would introduce a separate embodiment problem.
-- Spend compute first on the staged paired closed-loop PushT test authorized by
-  Experiment 2; do not begin broad sweeps or factory integration yet.
+- Do not spend additional compute on this archived study without a new frozen
+  protocol and fresh evaluation seeds.
 - Keep checkpoints, datasets, generated traces, and rollout videos gitignored.
 - Calibrate one small rollout arm before authorizing a full sweep.
 
 ## Attribution and framing
 
 Experiment 1 was inspired by EasyCache-style runtime-adaptive caching; it does
-not claim invention of the public EasyCache work. The current project claim is
-the narrower matched-NFE result for calibration-selected DDIM schedules.
+not claim invention of the public EasyCache work. The final project claim is
+the narrower mismatch between local teacher fidelity and closed-loop success.
 Relevant adjacent work includes BAC, reduced-step DDIM, optimized timestep
 selection, one-step/consistency distillation, ActionCache, VLA-Cache, and
-Real-Time Chunking. Any write-up must preserve both the cache negative result
-and the offline-only limitation of Experiment 2.
+Real-Time Chunking. Any write-up must preserve the cache negative, Experiment
+2's offline positive, Experiment 2D's proxy failure, and Experiment 3's failed
+non-inferiority gate.

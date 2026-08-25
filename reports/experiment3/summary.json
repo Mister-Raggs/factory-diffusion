@@ -1,0 +1,53 @@
+{
+  "status": "experiment-3-closed-loop-pusht",
+  "decision": "inconclusive-or-negative",
+  "episodes": 400,
+  "paired_seeds": 50,
+  "budgets": [2, 3, 4, 5],
+  "checkpoint_revision": "58570fc39828d28efa5457aa297a52be27ac3a10",
+  "dataset_revision": "ace8c161a68bc025c21a5f29f85b86a9a2c5e64b",
+  "pooled_success": {
+    "standard": 0.72,
+    "optimized": 0.705,
+    "optimized_minus_standard": -0.015,
+    "paired_seed_block_ci95": [-0.10, 0.08],
+    "one_sided_lower95": -0.09
+  },
+  "noninferiority_margin": -0.05,
+  "results": [
+    {
+      "nfe": 2,
+      "standard_successes": 35,
+      "optimized_successes": 35,
+      "trials_per_method": 50,
+      "optimized_minus_standard": 0.0
+    },
+    {
+      "nfe": 3,
+      "standard_successes": 34,
+      "optimized_successes": 37,
+      "trials_per_method": 50,
+      "optimized_minus_standard": 0.06
+    },
+    {
+      "nfe": 4,
+      "standard_successes": 36,
+      "optimized_successes": 37,
+      "trials_per_method": 50,
+      "optimized_minus_standard": 0.02
+    },
+    {
+      "nfe": 5,
+      "standard_successes": 39,
+      "optimized_successes": 32,
+      "trials_per_method": 50,
+      "optimized_minus_standard": -0.14
+    }
+  ],
+  "limitations": [
+    "The keypoint policy does not include visual perception latency or error.",
+    "Equal NFE is a compute control, not a hardware wall-clock claim.",
+    "The result is specific to the pinned PushT policy and tested schedules."
+  ]
+}
+

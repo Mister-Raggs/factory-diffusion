@@ -1,0 +1,45 @@
+{
+  "status": "experiment-2d-rollout-sensitivity-diagnostic",
+  "decision": "stop-proxy",
+  "post_hoc": true,
+  "teacher": "ddim-10",
+  "teacher_seeds": 10,
+  "teacher_snapshots": 244,
+  "teacher_contact_snapshots": 169,
+  "counterfactual_rows": 1952,
+  "checkpoint_revision": "58570fc39828d28efa5457aa297a52be27ac3a10",
+  "primary_metric": "one-chunk final keypoint RMSE from DDIM-10",
+  "results": [
+    {
+      "nfe": 2,
+      "seed_balanced_keypoint_rmse_difference_pixels": -0.4197233796,
+      "seed_bootstrap_ci95": [-0.8484219070, -0.1475875774],
+      "contact_keypoint_rmse_difference_pixels": -0.5709906485
+    },
+    {
+      "nfe": 3,
+      "seed_balanced_keypoint_rmse_difference_pixels": -0.1452948348,
+      "seed_bootstrap_ci95": [-0.2052509301, -0.0940446416],
+      "contact_keypoint_rmse_difference_pixels": -0.1932358774
+    },
+    {
+      "nfe": 4,
+      "seed_balanced_keypoint_rmse_difference_pixels": -0.1234728363,
+      "seed_bootstrap_ci95": [-0.1652303319, -0.0857492152],
+      "contact_keypoint_rmse_difference_pixels": -0.1730440422
+    },
+    {
+      "nfe": 5,
+      "seed_balanced_keypoint_rmse_difference_pixels": -0.0929896235,
+      "seed_bootstrap_ci95": [-0.1261445074, -0.0660651206],
+      "contact_keypoint_rmse_difference_pixels": -0.1302436214
+    }
+  ],
+  "interpretation": "The one-chunk proxy favors optimized schedules at every budget and therefore does not explain the NFE-5 closed-loop regression.",
+  "limitations": [
+    "This is a post-hoc diagnostic and cannot change Experiment 2 or 3 decisions.",
+    "Branches cover one action chunk from states visited by DDIM-10 only.",
+    "Fresh branch environments reproduce body state but not Pymunk collision caches."
+  ]
+}
+
